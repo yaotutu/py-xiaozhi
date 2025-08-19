@@ -305,10 +305,32 @@ class Application:
         try:
             import os as _os
 
+            # 检查是否禁用音频
             if _os.getenv("XIAOZHI_DISABLE_AUDIO") == "1":
                 logger.warning("已通过环境变量禁用音频初始化 (XIAOZHI_DISABLE_AUDIO=1)")
                 self.audio_codec = None
                 return
+                
+            # Linux环境下自动检测音频设备
+            if platform.system() == "Linux":
+                logger.info("检测到Linux环境，检查音频设备可用性...")
+                try:
+                    import sounddevice as sd
+                    devices = sd.query_devices()
+                    input_devices = [d for d in devices if d['max_input_channels'] > 0]
+                    output_devices = [d for d in devices if d['max_output_channels'] > 0]
+                    
+                    if not input_devices or not output_devices:
+                        logger.warning("未检测到可用的音频输入/输出设备，禁用音频功能")
+                        self.audio_codec = None
+                        return
+                    else:
+                        logger.info(f"检测到 {len(input_devices)} 个输入设备和 {len(output_devices)} 个输出设备")
+                except Exception as sd_e:
+                    logger.warning(f"音频设备检测失败: {sd_e}，禁用音频功能")
+                    self.audio_codec = None
+                    return
+                    
             logger.debug("开始初始化音频编解码器")
             from src.audio_codecs.audio_codec import AudioCodec
 
@@ -322,6 +344,7 @@ class Application:
 
         except Exception as e:
             logger.error("初始化音频设备失败: %s", e, exc_info=True)
+            logger.warning("音频初始化失败，程序将以无音频模式运行")
             # 确保初始化失败时audio_codec为None
             self.audio_codec = None
 

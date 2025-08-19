@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import platform
 import sys
 
 from src.application import Application
@@ -54,26 +55,38 @@ async def start_app(protocol: str, skip_activation: bool) -> int:
     启动CLI应用的入口（在已有事件循环中执行）.
     """
     logger.info("启动小智AI客户端 (CLI版本)")
+    logger.info(f"运行在: {platform.system()} {platform.release()}")
 
-    # 处理激活流程
-    if not skip_activation:
-        activation_success = await handle_activation()
-        if not activation_success:
-            logger.error("设备激活失败，程序退出")
-            return 1
-    else:
-        logger.warning("跳过激活流程（调试模式）")
+    try:
+        # 处理激活流程
+        if not skip_activation:
+            logger.info("开始设备激活流程...")
+            activation_success = await handle_activation()
+            if not activation_success:
+                logger.error("设备激活失败，程序退出")
+                return 1
+        else:
+            logger.warning("跳过激活流程（调试模式）")
 
-    # 创建并启动应用程序
-    app = Application.get_instance()
-    return await app.run(protocol=protocol)
+        # 创建并启动应用程序
+        logger.info("初始化应用程序...")
+        app = Application.get_instance()
+        logger.info("启动应用程序...")
+        return await app.run(protocol=protocol)
+        
+    except Exception as e:
+        logger.error(f"应用启动失败: {e}", exc_info=True)
+        return 1
 
 
-if __name__ == "__main__":
+def main():
+    """主函数入口"""
     exit_code = 1
     try:
         args = parse_args()
         setup_logging()
+        
+        logger.info(f"小智AI CLI版本启动 - {platform.system()} {platform.release()}")
 
         # CLI模式使用标准asyncio事件循环
         exit_code = asyncio.run(
@@ -83,8 +96,17 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("程序被用户中断")
         exit_code = 0
+    except ImportError as e:
+        logger.error(f"导入模块失败: {e}")
+        logger.error("请检查依赖是否正确安装，或尝试重新安装requirements.txt")
+        exit_code = 1
     except Exception as e:
         logger.error(f"程序异常退出: {e}", exc_info=True)
+        if "audio" in str(e).lower() or "sound" in str(e).lower():
+            logger.info("提示: 如果是音频相关问题，可以尝试设置环境变量 XIAOZHI_DISABLE_AUDIO=1")
         exit_code = 1
     finally:
-        sys.exit(exit_code)
+        return exit_code
+
+if __name__ == "__main__":
+    sys.exit(main())

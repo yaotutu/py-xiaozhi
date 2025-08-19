@@ -18,8 +18,8 @@ from src.utils.config_manager import ConfigManager
 from src.utils.logging_config import get_logger
 from src.utils.opus_loader import setup_opus
 
-# 检查是否为 macOS 系统
-if platform.system() == "Darwin":
+# 为所有Unix系统（包括Linux和macOS）设置信号处理器
+if platform.system() in ["Darwin", "Linux"]:
 
     def setup_signal_handler(sig, handler, description):
         """
@@ -27,10 +27,12 @@ if platform.system() == "Darwin":
         """
         try:
             signal.signal(sig, handler)
+            logger.debug(f"✅ {description}信号处理器设置成功")
         except (AttributeError, ValueError) as e:
-            print(f"注意: 无法设置{description}处理器: {e}")
+            logger.warning(f"无法设置{description}处理器: {e}")
 
     def handle_sigint(signum, frame):
+        logger.info("收到SIGINT信号，开始关闭应用程序...")
         app = Application.get_instance()
         if app:
             # 使用事件循环运行shutdown
@@ -39,14 +41,19 @@ if platform.system() == "Darwin":
                 loop.create_task(app.shutdown())
             except RuntimeError:
                 # 没有运行中的事件循环，直接退出
+                logger.info("没有运行中的事件循环，直接退出")
                 sys.exit(0)
 
     # 设置信号处理器
-    setup_signal_handler(signal.SIGTRAP, signal.SIG_IGN, "SIGTRAP")
+    if platform.system() == "Darwin":
+        setup_signal_handler(signal.SIGTRAP, signal.SIG_IGN, "SIGTRAP")
     setup_signal_handler(signal.SIGINT, handle_sigint, "SIGINT")
+    setup_signal_handler(signal.SIGTERM, handle_sigint, "SIGTERM")
+    
+    logger.info(f"✅ {platform.system()}系统信号处理器设置完成")
 
 else:
-    print("非 macOS 系统，跳过信号处理器设置")
+    logger.warning(f"未知系统 {platform.system()}，跳过信号处理器设置")
 
 setup_opus()
 

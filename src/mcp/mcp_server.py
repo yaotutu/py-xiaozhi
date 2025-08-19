@@ -248,79 +248,72 @@ class McpServer:
 
     def add_common_tools(self):
         """
-        添加通用工具.
+        添加通用工具 - 临时禁用所有外部工具以快速启动.
         """
         # 备份原有工具列表
         original_tools = self.tools.copy()
         self.tools.clear()
 
-        # 添加系统工具
-        from src.mcp.tools.system import get_system_tools_manager
+        # 临时禁用所有MCP工具以快速启动
+        logger.info("所有MCP工具已禁用，程序将以最小配置运行")
+        
+        # # 添加系统工具
+        # from src.mcp.tools.system import get_system_tools_manager
+        # system_manager = get_system_tools_manager()
+        # system_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
 
-        system_manager = get_system_tools_manager()
-        system_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
+        # # 添加日程管理工具
+        # from src.mcp.tools.calendar import get_calendar_manager
+        # calendar_manager = get_calendar_manager()
+        # calendar_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
 
-        # 添加日程管理工具
-        from src.mcp.tools.calendar import get_calendar_manager
+        # # 添加倒计时器工具
+        # from src.mcp.tools.timer import get_timer_manager
+        # timer_manager = get_timer_manager()
+        # timer_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
 
-        calendar_manager = get_calendar_manager()
-        calendar_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
+        # # 添加音乐播放器工具
+        # from src.mcp.tools.music import get_music_tools_manager
+        # music_manager = get_music_tools_manager()
+        # music_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
 
-        # 添加倒计时器工具
-        from src.mcp.tools.timer import get_timer_manager
+        # # 添加12306铁路查询工具
+        # from src.mcp.tools.railway import get_railway_tools_manager
+        # railway_manager = get_railway_tools_manager()
+        # railway_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
 
-        timer_manager = get_timer_manager()
-        timer_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
+        # # 添加搜索工具
+        # from src.mcp.tools.search import get_search_manager
+        # search_manager = get_search_manager()
+        # search_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
 
-        # 添加音乐播放器工具
-        from src.mcp.tools.music import get_music_tools_manager
+        # # 添加菜谱工具
+        # from src.mcp.tools.recipe import get_recipe_manager
+        # recipe_manager = get_recipe_manager()
+        # recipe_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
 
-        music_manager = get_music_tools_manager()
-        music_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
+        # # 添加摄像头工具
+        # from src.mcp.tools.camera import take_photo
+        # # 注册take_photo工具
+        # properties = PropertyList([Property("question", PropertyType.STRING)])
+        # self.add_tool(
+        #     McpTool(
+        #         "take_photo",
+        #         "拍照并分析图像内容...",
+        #         properties,
+        #         take_photo,
+        #     )
+        # )
 
-        # 添加12306铁路查询工具
-        from src.mcp.tools.railway import get_railway_tools_manager
+        # # 添加高德地图工具
+        # from src.mcp.tools.amap import get_amap_manager
+        # amap_manager = get_amap_manager()
+        # amap_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
 
-        railway_manager = get_railway_tools_manager()
-        railway_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
-
-        # 添加搜索工具
-        from src.mcp.tools.search import get_search_manager
-
-        search_manager = get_search_manager()
-        search_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
-
-        # 添加菜谱工具
-        from src.mcp.tools.recipe import get_recipe_manager
-
-        recipe_manager = get_recipe_manager()
-        recipe_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
-
-        # 添加摄像头工具
-        from src.mcp.tools.camera import take_photo
-
-        # 注册take_photo工具
-        properties = PropertyList([Property("question", PropertyType.STRING)])
-        self.add_tool(
-            McpTool(
-                "take_photo",
-                "拍照并分析图像内容。可以进行物体识别、文字识别、场景分析、问题解答等。适用于：看看这是什么、拍照识别、读取文字、分析场景、解答问题等需求。Take photo and analyze image content including object recognition, text recognition, scene analysis, and question answering.",
-                properties,
-                take_photo,
-            )
-        )
-
-        # 添加高德地图工具
-        from src.mcp.tools.amap import get_amap_manager
-
-        amap_manager = get_amap_manager()
-        amap_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
-
-        # 添加八字命理工具
-        from src.mcp.tools.bazi import get_bazi_manager
-
-        bazi_manager = get_bazi_manager()
-        bazi_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
+        # # 添加八字命理工具
+        # from src.mcp.tools.bazi import get_bazi_manager
+        # bazi_manager = get_bazi_manager()
+        # bazi_manager.init_tools(self.add_tool, PropertyList, Property, PropertyType)
 
         # 恢复原有工具
         self.tools.extend(original_tools)

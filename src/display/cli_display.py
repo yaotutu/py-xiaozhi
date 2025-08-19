@@ -349,7 +349,7 @@ class CliDisplay(BaseDisplay):
             prefix = "".join(self._ansi.get(n, "") for n in names)
             return f"{prefix}{s}{self._ansi['reset']}"
 
-        title = style(" 小智 AI 终端 ", "bold", "cyan")
+        title = style(" AI3D语音助手终端 ", "bold", "cyan")
         # 头部框和底部框
         top_bar = "┌" + ("─" * (max(2, cols - 2))) + "┐"
         title_line = "│" + title.center(max(2, cols - 2)) + "│"

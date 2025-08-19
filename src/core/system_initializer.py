@@ -303,11 +303,11 @@ class SystemInitializer:
         """
         return self.activation_status
 
-    async def handle_activation_process(self, mode: str = "gui") -> Dict:
-        """处理激活流程，根据需要创建激活界面.
+    async def handle_activation_process(self, mode: str = "cli") -> Dict:
+        """处理CLI激活流程.
 
         Args:
-            mode: 界面模式，"gui"或"cli"
+            mode: 界面模式，固定为"cli"
 
         Returns:
             Dict: 激活结果
@@ -323,79 +323,38 @@ class SystemInitializer:
                 "config_manager": self.config_manager,
             }
 
-        # 需要激活界面，根据模式创建
-        if mode == "gui":
-            return await self._run_gui_activation()
-        else:
-            return await self._run_cli_activation()
+        # 需要激活界面，使用CLI模式
+        return await self._run_cli_activation()
 
-    async def _run_gui_activation(self) -> Dict:
-        """运行GUI激活流程.
-
-        Returns:
-            Dict: 激活结果
-        """
-        try:
-            from src.views.activation.activation_window import ActivationWindow
-
-            # 创建激活窗口
-            activation_window = ActivationWindow(self)
-
-            # 创建Future来等待激活完成
-            activation_future = asyncio.Future()
-
-            # 设置激活完成回调
-            def on_activation_completed(success: bool):
-                if not activation_future.done():
-                    activation_future.set_result(success)
-
-            # 设置窗口关闭回调
-            def on_window_closed():
-                if not activation_future.done():
-                    activation_future.set_result(False)
-
-            # 连接信号
-            activation_window.activation_completed.connect(on_activation_completed)
-            activation_window.window_closed.connect(on_window_closed)
-
-            # 显示激活窗口
-            activation_window.show()
-
-            # 等待激活完成
-            activation_success = await activation_future
-
-            # 关闭窗口
-            activation_window.close()
-
-            return {
-                "is_activated": activation_success,
-                "device_fingerprint": self.device_fingerprint,
-                "config_manager": self.config_manager,
-            }
-
-        except Exception as e:
-            logger.error(f"GUI激活流程异常: {e}", exc_info=True)
-            return {"is_activated": False, "error": str(e)}
+    # GUI激活方法已移除 - 仅支持CLI版本
 
     async def _run_cli_activation(self) -> Dict:
-        """运行CLI激活流程.
+        """运行简化的CLI激活流程.
 
         Returns:
             Dict: 激活结果
         """
         try:
-            from src.views.activation.cli_activation import CLIActivation
-
-            # 创建CLI激活处理器
-            cli_activation = CLIActivation(self)
-
-            # 运行激活流程
-            activation_success = await cli_activation.run_activation_process()
-
+            # 简化的CLI激活流程 - 直接在终端显示激活信息
+            logger.info("=" * 50)
+            logger.info("设备需要激活")
+            logger.info("=" * 50)
+            
+            if self.activation_data:
+                logger.info(f"激活码: {self.activation_data.get('activation_code', 'N/A')}")
+                logger.info(f"设备指纹: {self.device_fingerprint.fingerprint if self.device_fingerprint else 'N/A'}")
+                
+            logger.info("请在web界面完成设备激活...")
+            logger.info("激活完成后程序将自动继续运行")
+            
+            # 简化处理：暂时返回未激活，让用户手动激活
+            logger.warning("CLI版本暂不支持自动激活，请通过web界面手动激活设备")
+            
             return {
-                "is_activated": activation_success,
+                "is_activated": False,
                 "device_fingerprint": self.device_fingerprint,
                 "config_manager": self.config_manager,
+                "message": "请通过web界面完成设备激活"
             }
 
         except Exception as e:

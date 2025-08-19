@@ -12,13 +12,7 @@ def parse_args():
     """
     解析命令行参数.
     """
-    parser = argparse.ArgumentParser(description="小智Ai客户端")
-    parser.add_argument(
-        "--mode",
-        choices=["gui", "cli"],
-        default="gui",
-        help="运行模式：gui(图形界面) 或 cli(命令行)",
-    )
+    parser = argparse.ArgumentParser(description="小智Ai客户端 (CLI版本)")
     parser.add_argument(
         "--protocol",
         choices=["mqtt", "websocket"],
@@ -33,11 +27,8 @@ def parse_args():
     return parser.parse_args()
 
 
-async def handle_activation(mode: str) -> bool:
+async def handle_activation() -> bool:
     """处理设备激活流程，依赖已有事件循环.
-
-    Args:
-        mode: 运行模式，"gui"或"cli"
 
     Returns:
         bool: 激活是否成功
@@ -48,8 +39,8 @@ async def handle_activation(mode: str) -> bool:
         logger.info("开始设备激活流程检查...")
 
         system_initializer = SystemInitializer()
-        # 统一使用 SystemInitializer 内的激活处理，GUI/CLI 自适应
-        result = await system_initializer.handle_activation_process(mode=mode)
+        # CLI模式激活处理
+        result = await system_initializer.handle_activation_process(mode="cli")
         success = bool(result.get("is_activated", False))
         logger.info(f"激活流程完成，结果: {success}")
         return success
@@ -58,15 +49,15 @@ async def handle_activation(mode: str) -> bool:
         return False
 
 
-async def start_app(mode: str, protocol: str, skip_activation: bool) -> int:
+async def start_app(protocol: str, skip_activation: bool) -> int:
     """
-    启动应用的统一入口（在已有事件循环中执行）.
+    启动CLI应用的入口（在已有事件循环中执行）.
     """
-    logger.info("启动小智AI客户端")
+    logger.info("启动小智AI客户端 (CLI版本)")
 
     # 处理激活流程
     if not skip_activation:
-        activation_success = await handle_activation(mode)
+        activation_success = await handle_activation()
         if not activation_success:
             logger.error("设备激活失败，程序退出")
             return 1
@@ -75,7 +66,7 @@ async def start_app(mode: str, protocol: str, skip_activation: bool) -> int:
 
     # 创建并启动应用程序
     app = Application.get_instance()
-    return await app.run(mode=mode, protocol=protocol)
+    return await app.run(protocol=protocol)
 
 
 if __name__ == "__main__":
@@ -84,30 +75,10 @@ if __name__ == "__main__":
         args = parse_args()
         setup_logging()
 
-        if args.mode == "gui":
-            # 在GUI模式下，由main统一创建 QApplication 与 qasync 事件循环
-            try:
-                import qasync
-                from PyQt5.QtWidgets import QApplication
-            except ImportError as e:
-                logger.error(f"GUI模式需要qasync和PyQt5库: {e}")
-                sys.exit(1)
-
-            qt_app = QApplication.instance() or QApplication(sys.argv)
-
-            loop = qasync.QEventLoop(qt_app)
-            asyncio.set_event_loop(loop)
-            logger.info("已在main中创建qasync事件循环")
-
-            with loop:
-                exit_code = loop.run_until_complete(
-                    start_app(args.mode, args.protocol, args.skip_activation)
-                )
-        else:
-            # CLI模式使用标准asyncio事件循环
-            exit_code = asyncio.run(
-                start_app(args.mode, args.protocol, args.skip_activation)
-            )
+        # CLI模式使用标准asyncio事件循环
+        exit_code = asyncio.run(
+            start_app(args.protocol, args.skip_activation)
+        )
 
     except KeyboardInterrupt:
         logger.info("程序被用户中断")

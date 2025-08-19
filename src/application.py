@@ -9,7 +9,7 @@ import typing as _t  # noqa: F401
 from typing import Set
 
 from src.constants.constants import AbortReason, DeviceState, ListeningMode
-from src.display import gui_display
+# GUI display removed - CLI only version
 from src.mcp.mcp_server import McpServer
 from src.protocols.mqtt_protocol import MqttProtocol
 from src.protocols.websocket_protocol import WebsocketProtocol
@@ -184,14 +184,13 @@ class Application:
 
     async def run(self, **kwargs):
         """
-        启动应用程序.
+        启动CLI应用程序.
         """
-        logger.info("启动应用程序，参数: %s", kwargs)
+        logger.info("启动CLI应用程序，参数: %s", kwargs)
 
-        mode = kwargs.get("mode", "gui")
         protocol = kwargs.get("protocol", "websocket")
 
-        return await self._run_application_core(protocol, mode)
+        return await self._run_application_core(protocol)
 
     def _initialize_async_objects(self):
         """
@@ -222,9 +221,9 @@ class Application:
         self._incoming_audio_idle_event = asyncio.Event()
         self._incoming_audio_idle_event.set()
 
-    async def _run_application_core(self, protocol: str, mode: str):
+    async def _run_application_core(self, protocol: str):
         """
-        应用程序核心运行逻辑.
+        CLI应用程序核心运行逻辑.
         """
         try:
             self.running = True
@@ -236,18 +235,15 @@ class Application:
             self._initialize_async_objects()
 
             # 初始化组件
-            await self._initialize_components(mode, protocol)
+            await self._initialize_components(protocol)
 
             # 启动核心任务
             await self._start_core_tasks()
 
-            # 启动显示界面
-            if mode == "gui":
-                await self._start_gui_display()
-            else:
-                await self._start_cli_display()
+            # 启动CLI显示界面
+            await self._start_cli_display()
 
-            logger.info("应用程序已启动，按Ctrl+C退出")
+            logger.info("CLI应用程序已启动，按Ctrl+C退出")
 
             # 等待关闭信号
             await self._shutdown_event.wait()
@@ -255,23 +251,23 @@ class Application:
             return 0
 
         except Exception as e:
-            logger.error(f"启动应用程序失败: {e}", exc_info=True)
+            logger.error(f"启动CLI应用程序失败: {e}", exc_info=True)
             return 1
         finally:
             # 确保应用程序正确关闭
             try:
                 await self.shutdown()
             except Exception as e:
-                logger.error(f"关闭应用程序时出错: {e}")
+                logger.error(f"关闭CLI应用程序时出错: {e}")
 
-    async def _initialize_components(self, mode: str, protocol: str):
+    async def _initialize_components(self, protocol: str):
         """
-        初始化应用程序组件.
+        初始化CLI应用程序组件.
         """
-        logger.info("正在初始化应用程序组件...")
+        logger.info("正在初始化CLI应用程序组件...")
 
-        # 设置显示类型（必须在设备状态设置之前）
-        self._set_display_type(mode)
+        # 设置CLI显示类型
+        self._set_display_type()
 
         # 初始化MCP服务器
         self._initialize_mcp_server()
@@ -300,10 +296,7 @@ class Application:
         # 启动倒计时器服务
         await self._start_timer_service()
 
-        # 初始化快捷键管理器
-        await self._initialize_shortcuts()
-
-        logger.info("应用程序组件初始化完成")
+        logger.info("CLI应用程序组件初始化完成")
 
     async def _initialize_audio(self):
         """
@@ -405,20 +398,16 @@ class Application:
         else:
             self.protocol = WebsocketProtocol()
 
-    def _set_display_type(self, mode: str):
+    def _set_display_type(self):
         """
-        设置显示界面类型.
+        设置CLI显示界面类型.
         """
-        logger.debug("设置显示界面类型: %s", mode)
+        logger.debug("设置CLI显示界面")
 
-        if mode == "gui":
-            self.display = gui_display.GuiDisplay()
-            self._setup_gui_callbacks()
-        else:
-            from src.display.cli_display import CliDisplay
+        from src.display.cli_display import CliDisplay
 
-            self.display = CliDisplay()
-            self._setup_cli_callbacks()
+        self.display = CliDisplay()
+        self._setup_cli_callbacks()
 
     def _create_async_callback(self, coro_func, *args):
         """
@@ -436,23 +425,7 @@ class Application:
 
         return _callback
 
-    def _setup_gui_callbacks(self):
-        """
-        设置GUI回调函数.
-        """
-        self._create_background_task(
-            self.display.set_callbacks(
-                press_callback=self._create_async_callback(self.start_listening),
-                release_callback=self._create_async_callback(self.stop_listening),
-                mode_callback=self._on_mode_changed,
-                auto_callback=self._create_async_callback(self.toggle_chat_state),
-                abort_callback=self._create_async_callback(
-                    self.abort_speaking, AbortReason.WAKE_WORD_DETECTED
-                ),
-                send_text_callback=self._send_text_tts,
-            ),
-            "GUI回调注册",
-        )
+    # GUI callbacks removed - CLI only version
 
     def _setup_cli_callbacks(self):
         """
@@ -566,15 +539,7 @@ class Application:
             except Exception as e:
                 logger.error(f"命令处理错误: {e}", exc_info=True)
 
-    async def _start_gui_display(self):
-        """
-        启动GUI显示.
-        """
-        # 在qasync环境中，GUI可以直接在主线程启动
-        try:
-            await self.display.start()
-        except Exception as e:
-            logger.error(f"GUI显示错误: {e}", exc_info=True)
+    # GUI display start method removed - CLI only version
 
     async def _start_cli_display(self):
         """
@@ -1424,19 +1389,4 @@ class Application:
         except Exception as e:
             logger.error(f"启动倒计时器服务失败: {e}", exc_info=True)
 
-    async def _initialize_shortcuts(self):
-        """
-        初始化快捷键管理器.
-        """
-        try:
-            from src.views.components.shortcut_manager import (
-                start_global_shortcuts_async,
-            )
-
-            shortcut_manager = await start_global_shortcuts_async(logger)
-            if shortcut_manager:
-                logger.info("快捷键管理器初始化成功")
-            else:
-                logger.warning("快捷键管理器初始化失败")
-        except Exception as e:
-            logger.error(f"初始化快捷键管理器失败: {e}", exc_info=True)
+    # 快捷键管理器仅适用于GUI模式，已移除

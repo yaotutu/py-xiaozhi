@@ -46,6 +46,8 @@ class CliDisplay(BaseDisplay):
         self.abort_callback = None
         self.send_text_callback = None
         self.mode_callback = None
+        self.press_callback = None
+        self.release_callback = None
 
         # 异步队列用于处理命令
         self.command_queue = asyncio.Queue()
@@ -70,6 +72,8 @@ class CliDisplay(BaseDisplay):
         self.abort_callback = abort_callback
         self.send_text_callback = send_text_callback
         self.mode_callback = mode_callback
+        self.press_callback = press_callback
+        self.release_callback = release_callback
 
     async def update_button_status(self, text: str):
         """
@@ -207,6 +211,16 @@ class CliDisplay(BaseDisplay):
         elif cmd == "r":
             if self.auto_callback:
                 await self.command_queue.put(self.auto_callback)
+        elif cmd == "b":  # begin - 开始录音（模拟按下）
+            if self.press_callback:
+                self._dash_text = "🎤 正在录音... (输入'e'停止)"
+                await self._render_dashboard()
+                await self.command_queue.put(self.press_callback)
+        elif cmd == "e":  # end - 结束录音（模拟释放）
+            if self.release_callback:
+                self._dash_text = "⏹️ 录音已停止"
+                await self._render_dashboard()
+                await self.command_queue.put(self.release_callback)
         elif cmd == "x":
             if self.abort_callback:
                 await self.command_queue.put(self.abort_callback)
@@ -225,7 +239,7 @@ class CliDisplay(BaseDisplay):
         """
         将帮助信息写入顶部内容显示区，而非直接打印。
         """
-        help_text = "r: 开始/停止 | x: 打断 | q: 退出 | h: 帮助 | 其他: 发送文本"
+        help_text = "b: 开始录音 | e: 停止录音 | r: 开始/停止 | x: 打断 | q: 退出 | h: 帮助 | 其他: 发送文本"
         self._dash_text = help_text
 
     async def _init_screen(self):
@@ -443,6 +457,7 @@ class CliDisplay(BaseDisplay):
         self._goto(first_input_row, 1)
         sys.stdout.write(prompt)
         sys.stdout.flush()
+
 
     async def toggle_mode(self):
         """

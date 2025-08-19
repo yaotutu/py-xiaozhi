@@ -460,6 +460,8 @@ class Application:
         """
         self._create_background_task(
             self.display.set_callbacks(
+                press_callback=self._create_async_callback(self.start_listening),
+                release_callback=self._create_async_callback(self.stop_listening),
                 auto_callback=self._create_async_callback(self.toggle_chat_state),
                 abort_callback=self._create_async_callback(
                     self.abort_speaking, AbortReason.WAKE_WORD_DETECTED

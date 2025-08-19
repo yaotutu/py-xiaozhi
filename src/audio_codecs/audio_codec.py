@@ -536,14 +536,19 @@ class AudioCodec:
         解码音频并播放 网络接收的Opus数据 -> 解码24kHz -> 播放队列.
         """
         try:
+            # 服务端使用60ms帧大小，计算对应的采样点数
+            # 24000Hz * 60ms = 1440 samples
+            decode_frame_size = int(AudioConfig.OUTPUT_SAMPLE_RATE * 0.06)  # 60ms
+            
             # Opus解码为24kHz PCM数据
             pcm_data = self.opus_decoder.decode(
-                opus_data, AudioConfig.OUTPUT_FRAME_SIZE
+                opus_data, decode_frame_size
             )
 
             audio_array = np.frombuffer(pcm_data, dtype=np.int16)
 
-            expected_length = AudioConfig.OUTPUT_FRAME_SIZE * AudioConfig.CHANNELS
+            # 期望长度应该是解码帧大小乘以通道数
+            expected_length = decode_frame_size * AudioConfig.CHANNELS
             if len(audio_array) != expected_length:
                 logger.warning(
                     f"解码音频长度异常: {len(audio_array)}, 期望: {expected_length}"

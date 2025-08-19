@@ -20,7 +20,7 @@ def setup_logging():
 
     # 创建根日志记录器
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.WARNING)  # 设置根日志级别
+    root_logger.setLevel(logging.DEBUG)  # 临时设置为DEBUG级别以便调试
 
     # 清除已有的处理器（避免重复添加）
     if root_logger.handlers:
@@ -28,7 +28,7 @@ def setup_logging():
 
     # 创建控制台处理器
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.WARNING)
+    console_handler.setLevel(logging.INFO)  # 控制台显示INFO级别以上
 
     # 创建按天切割的文件处理器
     file_handler = TimedRotatingFileHandler(

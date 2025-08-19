@@ -226,35 +226,46 @@ class Application:
         CLI应用程序核心运行逻辑.
         """
         try:
+            logger.info("🚀 开始CLI应用程序核心启动流程")
             self.running = True
 
             # 保存主线程的事件循环
+            logger.debug("保存主事件循环引用")
             self._main_loop = asyncio.get_running_loop()
 
             # 初始化异步对象 - 必须在事件循环运行后创建
+            logger.debug("初始化异步对象")
             self._initialize_async_objects()
 
             # 初始化组件
+            logger.info("开始初始化应用组件...")
             await self._initialize_components(protocol)
+            logger.info("✅ 应用组件初始化完成")
 
             # 启动核心任务
+            logger.debug("启动核心任务")
             await self._start_core_tasks()
 
             # 启动CLI显示界面
+            logger.info("启动CLI显示界面...")
             await self._start_cli_display()
+            logger.info("✅ CLI界面启动完成")
 
-            logger.info("CLI应用程序已启动，按Ctrl+C退出")
+            logger.info("🎉 CLI应用程序已启动，按Ctrl+C退出")
 
             # 等待关闭信号
+            logger.debug("等待关闭信号...")
             await self._shutdown_event.wait()
 
+            logger.info("收到关闭信号，正常退出")
             return 0
 
         except Exception as e:
-            logger.error(f"启动CLI应用程序失败: {e}", exc_info=True)
+            logger.error(f"❌ 启动CLI应用程序失败: {e}", exc_info=True)
             return 1
         finally:
             # 确保应用程序正确关闭
+            logger.info("执行应用程序关闭流程...")
             try:
                 await self.shutdown()
             except Exception as e:
@@ -266,37 +277,62 @@ class Application:
         """
         logger.info("正在初始化CLI应用程序组件...")
 
-        # 设置CLI显示类型
-        self._set_display_type()
+        try:
+            # 设置CLI显示类型
+            logger.debug("设置CLI显示类型...")
+            self._set_display_type()
+            logger.debug("✅ CLI显示类型设置完成")
 
-        # 初始化MCP服务器
-        self._initialize_mcp_server()
+            # 初始化MCP服务器
+            logger.debug("初始化MCP服务器...")
+            self._initialize_mcp_server()
+            logger.debug("✅ MCP服务器初始化完成")
 
-        # 设置设备状态
-        await self._set_device_state(DeviceState.IDLE)
+            # 设置设备状态
+            logger.debug("设置设备状态...")
+            await self._set_device_state(DeviceState.IDLE)
+            logger.debug("✅ 设备状态设置完成")
 
-        # 初始化物联网设备
-        await self._initialize_iot_devices()
+            # 初始化物联网设备
+            logger.debug("初始化物联网设备...")
+            await self._initialize_iot_devices()
+            logger.debug("✅ 物联网设备初始化完成")
 
-        # 初始化音频编解码器
-        await self._initialize_audio()
+            # 初始化音频编解码器
+            logger.debug("初始化音频编解码器...")
+            await self._initialize_audio()
+            logger.debug("✅ 音频编解码器初始化完成")
 
-        # 设置协议
-        self._set_protocol_type(protocol)
+            # 设置协议
+            logger.debug(f"设置通信协议: {protocol}")
+            self._set_protocol_type(protocol)
+            logger.debug("✅ 通信协议设置完成")
 
-        # 初始化唤醒词检测
-        await self._initialize_wake_word_detector()
+            # 初始化唤醒词检测
+            logger.debug("初始化唤醒词检测...")
+            await self._initialize_wake_word_detector()
+            logger.debug("✅ 唤醒词检测初始化完成")
 
-        # 设置协议回调
-        self._setup_protocol_callbacks()
+            # 设置协议回调
+            logger.debug("设置协议回调...")
+            self._setup_protocol_callbacks()
+            logger.debug("✅ 协议回调设置完成")
 
-        # 启动日程提醒服务
-        await self._start_calendar_reminder_service()
+            # 启动日程提醒服务
+            logger.debug("启动日程提醒服务...")
+            await self._start_calendar_reminder_service()
+            logger.debug("✅ 日程提醒服务启动完成")
 
-        # 启动倒计时器服务
-        await self._start_timer_service()
+            # 启动倒计时器服务
+            logger.debug("启动倒计时器服务...")
+            await self._start_timer_service()
+            logger.debug("✅ 倒计时器服务启动完成")
 
-        logger.info("CLI应用程序组件初始化完成")
+            logger.info("✅ CLI应用程序组件初始化完成")
+            
+        except Exception as e:
+            logger.error(f"❌ 组件初始化失败: {e}", exc_info=True)
+            raise
 
     async def _initialize_audio(self):
         """

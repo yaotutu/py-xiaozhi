@@ -1,6 +1,5 @@
 import asyncio
 import json
-import platform
 import signal
 import sys
 import threading
@@ -9,7 +8,6 @@ import typing as _t  # noqa: F401
 from typing import Set
 
 from src.constants.constants import AbortReason, DeviceState, ListeningMode
-# GUI display will be imported when needed
 from src.mcp.mcp_server import McpServer
 from src.protocols.mqtt_protocol import MqttProtocol
 from src.protocols.websocket_protocol import WebsocketProtocol
@@ -18,35 +16,17 @@ from src.utils.config_manager import ConfigManager
 from src.utils.logging_config import get_logger
 from src.utils.opus_loader import setup_opus
 
-# 检查是否为 macOS 系统
-if platform.system() == "Darwin":
-
-    def setup_signal_handler(sig, handler, description):
-        """
-        统一的信号处理器设置函数.
-        """
+# Linux信号处理器设置
+def handle_sigint(signum, frame):
+    app = Application.get_instance()
+    if app:
         try:
-            signal.signal(sig, handler)
-        except (AttributeError, ValueError) as e:
-            print(f"注意: 无法设置{description}处理器: {e}")
+            loop = asyncio.get_running_loop()
+            loop.create_task(app.shutdown())
+        except RuntimeError:
+            sys.exit(0)
 
-    def handle_sigint(signum, frame):
-        app = Application.get_instance()
-        if app:
-            # 使用事件循环运行shutdown
-            try:
-                loop = asyncio.get_running_loop()
-                loop.create_task(app.shutdown())
-            except RuntimeError:
-                # 没有运行中的事件循环，直接退出
-                sys.exit(0)
-
-    # 设置信号处理器
-    setup_signal_handler(signal.SIGTRAP, signal.SIG_IGN, "SIGTRAP")
-    setup_signal_handler(signal.SIGINT, handle_sigint, "SIGINT")
-
-else:
-    print("非 macOS 系统，跳过信号处理器设置")
+signal.signal(signal.SIGINT, handle_sigint)
 
 setup_opus()
 
@@ -188,7 +168,7 @@ class Application:
         """
         logger.info("启动应用程序，参数: %s", kwargs)
 
-        mode = kwargs.get("mode", "gui")
+        mode = kwargs.get("mode", "cli")
         protocol = kwargs.get("protocol", "websocket")
 
         return await self._run_application_core(protocol, mode)
@@ -424,7 +404,7 @@ class Application:
 
             def _on_done(t):
                 if not t.cancelled() and t.exception():
-                    logger.error(f"GUI回调任务异常: {t.exception()}", exc_info=True)
+                    logger.error(f"回调任务异常: {t.exception()}", exc_info=True)
 
             task.add_done_callback(_on_done)
 
@@ -1184,22 +1164,6 @@ class Application:
         except Exception as e:
             logger.error(f"更新IoT状态失败: {e}")
 
-    def _on_mode_changed(self):
-        """
-        处理对话模式变更.
-        """
-        # 注意：这是一个同步方法，在GUI回调中使用
-        # 需要创建临时任务来执行异步锁操作
-        try:
-            # 快速检查当前状态，避免在GUI线程中执行复杂的异步操作
-            if self.device_state != DeviceState.IDLE:
-                return False
-
-            self.keep_listening = not self.keep_listening
-            return True
-        except Exception as e:
-            logger.error(f"模式变更检查失败: {e}")
-            return False
 
     async def _safe_close_resource(
         self, resource, resource_name: str, close_method: str = "close"

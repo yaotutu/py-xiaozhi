@@ -1,11 +1,7 @@
-"""统一的应用程序关闭器.
-
-根据系统自动选择对应的关闭器实现
-"""
+"""Linux应用程序终止器."""
 
 import asyncio
 import json
-import platform
 from typing import Any, Dict, List
 
 from src.utils.logging_config import get_logger
@@ -31,39 +27,31 @@ async def kill_application(args: Dict[str, Any]) -> bool:
         force = args.get("force", False)
         logger.info(f"[AppKiller] 尝试关闭应用程序: {app_name}, 强制关闭: {force}")
 
-        # 首先尝试通过扫描找到正在运行的应用程序
+        # 查找正在运行的应用程序
         running_apps = await _find_running_applications(app_name)
 
         if not running_apps:
             logger.warning(f"[AppKiller] 未找到正在运行的应用程序: {app_name}")
             return False
 
-        # 按系统选择关闭策略
-        system = platform.system()
-        if system == "Windows":
-            # Windows使用复杂的分组关闭策略
-            success = await asyncio.to_thread(
-                _kill_windows_app_group, running_apps, app_name, force
-            )
-        else:
-            # macOS和Linux使用简单的逐个关闭策略
-            success_count = 0
-            for app in running_apps:
-                success = await asyncio.to_thread(_kill_app_sync, app, force, system)
-                if success:
-                    success_count += 1
-                    logger.info(
-                        f"[AppKiller] 成功关闭应用程序: {app['name']} (PID: {app.get('pid', 'N/A')})"
-                    )
-                else:
-                    logger.warning(
-                        f"[AppKiller] 关闭应用程序失败: {app['name']} (PID: {app.get('pid', 'N/A')})"
-                    )
+        # Linux使用简单的逐个关闭策略
+        success_count = 0
+        for app in running_apps:
+            success = await asyncio.to_thread(_kill_app_sync, app, force)
+            if success:
+                success_count += 1
+                logger.info(
+                    f"[AppKiller] 成功关闭应用程序: {app['name']} (PID: {app.get('pid', 'N/A')})"
+                )
+            else:
+                logger.warning(
+                    f"[AppKiller] 关闭应用程序失败: {app['name']} (PID: {app.get('pid', 'N/A')})"
+                )
 
-            success = success_count > 0
-            logger.info(
-                f"[AppKiller] 关闭操作完成，成功关闭 {success_count}/{len(running_apps)} 个进程"
-            )
+        success = success_count > 0
+        logger.info(
+            f"[AppKiller] 关闭操作完成，成功关闭 {success_count}/{len(running_apps)} 个进程"
+        )
 
         return success
 
@@ -156,32 +144,17 @@ def _list_running_apps_sync(filter_name: str = "") -> List[Dict[str, Any]]:
     Returns:
         正在运行的应用程序列表
     """
-    system = platform.system()
+    from .linux.killer import list_running_applications
 
-    if system == "Darwin":  # macOS
-        from .mac.killer import list_running_applications
-
-        return list_running_applications(filter_name)
-    elif system == "Windows":  # Windows
-        from .windows.killer import list_running_applications
-
-        return list_running_applications(filter_name)
-    elif system == "Linux":  # Linux
-        from .linux.killer import list_running_applications
-
-        return list_running_applications(filter_name)
-    else:
-        logger.warning(f"[AppKiller] 不支持的操作系统: {system}")
-        return []
+    return list_running_applications(filter_name)
 
 
-def _kill_app_sync(app: Dict[str, Any], force: bool, system: str) -> bool:
+def _kill_app_sync(app: Dict[str, Any], force: bool) -> bool:
     """同步关闭应用程序.
 
     Args:
         app: 应用程序信息
         force: 是否强制关闭
-        system: 操作系统类型
 
     Returns:
         bool: 关闭是否成功
@@ -191,69 +164,21 @@ def _kill_app_sync(app: Dict[str, Any], force: bool, system: str) -> bool:
         if not pid:
             return False
 
-        if system == "Windows":
-            from .windows.killer import kill_application
+        from .linux.killer import kill_application
 
-            return kill_application(pid, force)
-        elif system == "Darwin":  # macOS
-            from .mac.killer import kill_application
-
-            return kill_application(pid, force)
-        elif system == "Linux":  # Linux
-            from .linux.killer import kill_application
-
-            return kill_application(pid, force)
-        else:
-            logger.error(f"[AppKiller] 不支持的操作系统: {system}")
-            return False
+        return kill_application(pid, force)
 
     except Exception as e:
         logger.error(f"[AppKiller] 同步关闭应用程序失败: {e}")
         return False
 
 
-def _kill_windows_app_group(
-    apps: List[Dict[str, Any]], app_name: str, force: bool
-) -> bool:
-    """Windows系统的分组关闭策略.
-
-    Args:
-        apps: 匹配的应用程序进程列表
-        app_name: 应用程序名称
-        force: 是否强制关闭
-
-    Returns:
-        bool: 关闭是否成功
-    """
-    try:
-        from .windows.killer import kill_application_group
-
-        return kill_application_group(apps, app_name, force)
-    except Exception as e:
-        logger.error(f"[AppKiller] Windows分组关闭失败: {e}")
-        return False
-
-
 def get_system_killer():
-    """根据当前系统获取对应的关闭器模块.
+    """获取Linux关闭器模块.
 
     Returns:
-        对应系统的关闭器模块
+        Linux关闭器模块
     """
-    system = platform.system()
+    from .linux import killer
 
-    if system == "Darwin":  # macOS
-        from .mac import killer
-
-        return killer
-    elif system == "Windows":  # Windows
-        from .windows import killer
-
-        return killer
-    elif system == "Linux":  # Linux
-        from .linux import killer
-
-        return killer
-    else:
-        logger.warning(f"[AppKiller] 不支持的系统: {system}")
-        return None
+    return killer

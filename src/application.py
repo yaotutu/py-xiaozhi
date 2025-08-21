@@ -241,11 +241,8 @@ class Application:
             # 启动核心任务
             await self._start_core_tasks()
 
-            # 启动显示界面
-            if mode == "gui":
-                await self._start_gui_display()
-            else:
-                await self._start_cli_display()
+            # 启动CLI显示界面
+            await self._start_cli_display()
 
             logger.info("应用程序已启动，按Ctrl+C退出")
 
@@ -411,15 +408,11 @@ class Application:
         """
         logger.debug("设置显示界面类型: %s", mode)
 
-        if mode == "gui":
-            from src.display.gui_display import GuiDisplay
-            self.display = GuiDisplay()
-            self._setup_gui_callbacks()
-        else:
-            from src.display.cli_display import CliDisplay
+        # 只支持CLI模式
+        from src.display.cli_display import CliDisplay
 
-            self.display = CliDisplay()
-            self._setup_cli_callbacks()
+        self.display = CliDisplay()
+        self._setup_cli_callbacks()
 
     def _create_async_callback(self, coro_func, *args):
         """
@@ -437,23 +430,6 @@ class Application:
 
         return _callback
 
-    def _setup_gui_callbacks(self):
-        """
-        设置GUI回调函数.
-        """
-        self._create_background_task(
-            self.display.set_callbacks(
-                press_callback=self._create_async_callback(self.start_listening),
-                release_callback=self._create_async_callback(self.stop_listening),
-                mode_callback=self._on_mode_changed,
-                auto_callback=self._create_async_callback(self.toggle_chat_state),
-                abort_callback=self._create_async_callback(
-                    self.abort_speaking, AbortReason.WAKE_WORD_DETECTED
-                ),
-                send_text_callback=self._send_text_tts,
-            ),
-            "GUI回调注册",
-        )
 
     def _setup_cli_callbacks(self):
         """
@@ -567,15 +543,6 @@ class Application:
             except Exception as e:
                 logger.error(f"命令处理错误: {e}", exc_info=True)
 
-    async def _start_gui_display(self):
-        """
-        启动GUI显示.
-        """
-        # 在qasync环境中，GUI可以直接在主线程启动
-        try:
-            await self.display.start()
-        except Exception as e:
-            logger.error(f"GUI显示错误: {e}", exc_info=True)
 
     async def _start_cli_display(self):
         """

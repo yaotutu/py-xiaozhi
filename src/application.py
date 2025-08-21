@@ -9,7 +9,7 @@ import typing as _t  # noqa: F401
 from typing import Set
 
 from src.constants.constants import AbortReason, DeviceState, ListeningMode
-from src.display import gui_display
+# GUI display will be imported when needed
 from src.mcp.mcp_server import McpServer
 from src.protocols.mqtt_protocol import MqttProtocol
 from src.protocols.websocket_protocol import WebsocketProtocol
@@ -412,7 +412,8 @@ class Application:
         logger.debug("设置显示界面类型: %s", mode)
 
         if mode == "gui":
-            self.display = gui_display.GuiDisplay()
+            from src.display.gui_display import GuiDisplay
+            self.display = GuiDisplay()
             self._setup_gui_callbacks()
         else:
             from src.display.cli_display import CliDisplay
@@ -1429,7 +1430,7 @@ class Application:
         初始化快捷键管理器.
         """
         try:
-            from src.views.components.shortcut_manager import (
+            from src.utils.shortcuts.shortcut_manager import (
                 start_global_shortcuts_async,
             )
 

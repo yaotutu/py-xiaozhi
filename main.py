@@ -16,7 +16,7 @@ def parse_args():
     parser.add_argument(
         "--mode",
         choices=["gui", "cli"],
-        default="gui",
+        default="cli",
         help="运行模式：gui(图形界面) 或 cli(命令行)",
     )
     parser.add_argument(

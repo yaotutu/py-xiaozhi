@@ -384,7 +384,7 @@ class SystemInitializer:
             Dict: 激活结果
         """
         try:
-            from src.views.activation.cli_activation import CLIActivation
+            from src.utils.cli_activation import CLIActivation
 
             # 创建CLI激活处理器
             cli_activation = CLIActivation(self)

@@ -10,7 +10,6 @@ import ctypes
 
 from src.constants.constants import AudioConfig
 from src.utils.logging_config import get_logger
-from libs.webrtc_apm import WebRTCAudioProcessing, create_default_config
 
 logger = get_logger(__name__)
 
@@ -68,6 +67,13 @@ class AECProcessor:
     async def _initialize_apm(self):
         """初始化WebRTC音频处理模块"""
         try:
+            # 只在macOS上才加载WebRTC APM库
+            if not self._is_macos:
+                logger.info("非macOS平台，跳过WebRTC APM初始化")
+                return
+                
+            from libs.webrtc_apm import WebRTCAudioProcessing, create_default_config
+            
             self.apm = WebRTCAudioProcessing()
             
             # 创建配置

@@ -4,14 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 项目概述
 
-py-xiaozhi 是一个专为 Linux 设计的 AI 语音助手客户端，采用纯 CLI 模式运行。支持语音交互、MCP工具系统、IoT设备控制等功能。项目基于异步架构，已精简移除所有 GUI 和跨平台代码。
+py-xiaozhi 是一个专为 Linux ARM 设备（如 Orange Pi）设计的 AI 语音助手客户端，采用纯 CLI 模式运行。支持语音交互、MCP工具系统、IoT设备控制等功能。项目基于异步架构，已精简移除所有 GUI 和跨平台代码。
 
 ## 项目特点
 
-- **纯 Linux CLI 应用**：专为 Linux 系统优化，无 GUI 依赖
+- **纯 Linux CLI 应用**：专为 Linux ARM 系统优化（主要在 Orange Pi 上运行），无 GUI 依赖
 - **精简架构**：移除所有 Windows/macOS 代码，代码量减少约30%
 - **轻量运行**：无 PyQt5/qasync 依赖，启动快速，内存占用小
 - **核心功能完整**：保留所有 AI 交互、MCP工具、IoT 控制功能
+- **实时音频处理**：集成 VAD、Opus 编解码、WebRTC AEC 回声消除
 
 ## 常用开发命令
 
@@ -50,6 +51,9 @@ pip install -r requirements.txt --upgrade
 
 # 卸载已移除的GUI依赖（如果之前安装过）
 pip uninstall PyQt5 qasync -y
+
+# 验证环境（检查依赖是否正确安装）
+python verify_env.py
 ```
 
 ## 核心架构
@@ -76,25 +80,27 @@ pip uninstall PyQt5 qasync -y
 ## 配置系统
 
 配置文件位于 `config/config.json`，支持分层配置和点记法访问：
-- `SYSTEM_OPTIONS` - 系统配置（设备ID、网络URL等）
-- `WAKE_WORD_OPTIONS` - 唤醒词配置
-- `CAMERA` - 摄像头配置
+- `SYSTEM_OPTIONS` - 系统配置（设备ID、网络URL、协议选择等）
+- `WAKE_WORD_OPTIONS` - 唤醒词配置（模型路径、灵敏度）
+- `CAMERA` - 摄像头配置（分辨率、帧率）
 - `SHORTCUTS` - 快捷键配置（通过 pynput 在后台监听）
-- `AEC_OPTIONS` - 回声消除配置
+- `AEC_OPTIONS` - 回声消除配置（降噪级别、延迟参数）
+- `AUDIO` - 音频配置（采样率、缓冲区大小）
 
 ## MCP工具系统
 
 ### 已集成的MCP工具
-- **系统控制** (`system/`) - 应用管理、音量控制、系统状态
-- **日程管理** (`calendar/`) - 日历事件、提醒服务
-- **定时任务** (`timer/`) - 倒计时器、定时执行
-- **音乐播放** (`music/`) - 在线音乐搜索、播放控制
-- **铁路查询** (`railway/`) - 12306票务查询
-- **网络搜索** (`search/`) - 必应搜索、网页内容获取
-- **菜谱查询** (`recipe/`) - 菜谱搜索、分类查询
-- **地图服务** (`amap/`) - 高德地图、路径规划、天气查询
-- **八字命理** (`bazi/`) - 八字分析、婚姻分析、黄历查询
-- **摄像头** (`camera/`) - 图像捕获、AI视觉分析
+- **系统控制** (`system/`) - 应用管理、音量控制、系统状态监控
+- **日程管理** (`calendar/`) - 日历事件、提醒服务、事件查询
+- **定时任务** (`timer/`) - 倒计时器、定时执行、多任务管理
+- **音乐播放** (`music/`) - 在线音乐搜索、播放控制、歌单管理
+- **铁路查询** (`railway/`) - 12306票务查询、车次信息、余票监控
+- **网络搜索** (`search/`) - 必应搜索、网页内容获取、信息提取
+- **菜谱查询** (`recipe/`) - 菜谱搜索、分类查询、食材推荐
+- **地图服务** (`amap/`) - 高德地图、路径规划、天气查询、POI搜索
+- **八字命理** (`bazi/`) - 八字分析、婚姻分析、黄历查询、运势预测
+- **摄像头** (`camera/`) - 图像捕获、AI视觉分析、场景识别
+- **电池管理** (`battery/`) - 电池状态监控、电量预警（开发中）
 
 ### 新增MCP工具步骤
 1. 在 `src/mcp/tools/` 创建工具目录
@@ -104,11 +110,11 @@ pip uninstall PyQt5 qasync -y
 ## IoT设备开发
 
 ### 已支持的设备
-- 智能灯光控制
-- 音量控制
-- 音乐播放器
-- 倒计时器
-- 摄像头设备
+- **智能灯光** (`lamp.py`) - 开关控制、亮度调节
+- **扬声器** (`speaker.py`) - 音量控制、静音管理
+- **音乐播放器** (`music_player.py`) - 播放控制、歌单管理、进度控制
+- **倒计时器** (`countdown_timer.py`) - 多任务倒计时、提醒功能
+- **摄像头** (`CameraVL/`) - 视频流捕获、图像处理
 
 ### 新增IoT设备步骤
 1. 在 `src/iot/things/` 创建设备类
@@ -126,11 +132,12 @@ pip uninstall PyQt5 qasync -y
 ## 重要文件路径
 
 - 配置文件: `config/config.json`
-- 日志文件: `logs/`
-- 缓存文件: `cache/`
-- 语音模型: `models/`（唤醒词模型，需单独下载）
-- 音乐缓存: `cache/music/`
+- 日志文件: `logs/` (应用运行日志，按日期分割)
+- 缓存文件: `cache/` (临时文件存储)
+- 语音模型: `models/` (Sherpa-ONNX唤醒词模型，需单独下载)
+- 音乐缓存: `cache/music/` (在线音乐缓存)
 - Linux库文件: `libs/libopus/linux/`, `libs/webrtc_apm/linux/`
+- 格式化脚本: `format_code.sh` (代码格式化工具链)
 
 ## 已移除的内容
 
@@ -143,7 +150,10 @@ pip uninstall PyQt5 qasync -y
 
 ## 开发注意事项
 
-1. **纯Linux环境**：所有新增代码应只考虑 Linux 平台
-2. **CLI优先**：界面交互都通过命令行实现
+1. **纯Linux环境**：所有新增代码应只考虑 Linux ARM 平台（主要是 Orange Pi）
+2. **CLI优先**：界面交互都通过命令行实现，使用 rich 库美化输出
 3. **保持精简**：避免添加不必要的依赖和代码
 4. **异步编程**：使用 async/await，避免阻塞操作
+5. **错误处理**：完善的异常捕获和日志记录
+6. **代码规范**：运行 `./format_code.sh` 保持代码风格一致
+7. **性能优化**：注意 ARM 设备的性能限制，避免占用过多资源

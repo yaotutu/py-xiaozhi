@@ -157,3 +157,42 @@ python verify_env.py
 5. **错误处理**：完善的异常捕获和日志记录
 6. **代码规范**：运行 `./format_code.sh` 保持代码风格一致
 7. **性能优化**：注意 ARM 设备的性能限制，避免占用过多资源
+
+## 代码编写规范
+
+### 注释规范
+1. **Python注释**：必须使用 `#` 注释，禁止使用 `"""` 或 `'''` 的多行字符串作为注释
+2. **注释详细度**：所有函数、类、复杂逻辑都需要添加详细的中文注释
+3. **注释位置**：
+   - 类和函数的说明注释放在定义的上一行
+   - 代码块的注释放在代码块上方
+   - 行内注释放在代码后面，使用两个空格分隔
+
+### 注释示例
+```python
+# 音频处理管理器类
+# 负责管理音频的编解码、VAD检测和回声消除
+class AudioManager:
+    # 初始化音频管理器
+    # 参数:
+    #   sample_rate: 采样率，默认16000
+    #   channels: 通道数，默认1（单声道）
+    def __init__(self, sample_rate=16000, channels=1):
+        self.sample_rate = sample_rate  # 音频采样率
+        self.channels = channels  # 音频通道数
+        
+        # 初始化VAD检测器
+        # 用于检测语音活动，过滤静音片段
+        self.vad = VADDetector()
+        
+        # 初始化Opus编码器
+        # 用于压缩音频数据，降低网络传输带宽
+        self.encoder = OpusEncoder(sample_rate, channels)
+```
+
+### 其他编码规范
+- **函数命名**：使用小写字母和下划线（snake_case）
+- **类命名**：使用大驼峰命名法（PascalCase）
+- **常量命名**：使用大写字母和下划线（UPPER_SNAKE_CASE）
+- **私有成员**：使用单下划线前缀（_private_member）
+- **导入顺序**：标准库 → 第三方库 → 本地模块

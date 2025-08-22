@@ -389,9 +389,9 @@ class Application:
         logger.debug("设置显示界面类型: %s", mode)
 
         # 只支持CLI模式
-        from src.display.cli_display import CliDisplay
+        from src.display.simple_cli_display import SimpleCliDisplay
 
-        self.display = CliDisplay()
+        self.display = SimpleCliDisplay()
         self._setup_cli_callbacks()
 
     def _create_async_callback(self, coro_func, *args):

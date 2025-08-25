@@ -86,6 +86,11 @@ class Application:
         self.protocol = None
         self.display = None
         self.wake_word_detector = None
+        
+        # gRPC 相关组件
+        self.voice_service = None  # 语音服务
+        self.grpc_server = None  # gRPC 服务器
+        
         # 任务管理
         self.running = False
         self._main_tasks: Set[asyncio.Task] = set()
@@ -270,6 +275,9 @@ class Application:
 
         # 设置协议回调
         self._setup_protocol_callbacks()
+        
+        # 初始化 gRPC 服务
+        await self._initialize_grpc_service()
 
         # 启动日程提醒服务
         await self._start_calendar_reminder_service()
@@ -1251,8 +1259,16 @@ class Application:
 
             # 7. 关闭MCP服务器
             await self._safe_close_resource(self.mcp_server, "MCP服务器")
+            
+            # 8. 关闭 gRPC 服务器
+            if self.grpc_server:
+                try:
+                    await self.grpc_server.stop()
+                    logger.info("gRPC 服务器已关闭")
+                except Exception as e:
+                    logger.error(f"关闭 gRPC 服务器失败: {e}")
 
-            # 8. 清理队列
+            # 9. 清理队列
             try:
                 for q in [
                     self.command_queue,
@@ -1339,6 +1355,46 @@ class Application:
 
         except Exception as e:
             logger.error(f"启动日程提醒服务失败: {e}", exc_info=True)
+    
+    async def _initialize_grpc_service(self):
+        # 初始化 gRPC 服务
+        try:
+            # 检查是否启用 gRPC
+            grpc_enabled = self.config.get_config("GRPC.ENABLED", True)
+            if not grpc_enabled:
+                logger.info("gRPC 服务已禁用")
+                return
+            
+            logger.info("初始化 gRPC 服务")
+            
+            # 创建语音服务
+            from src.services.voice_service import VoiceService
+            self.voice_service = VoiceService()
+            self.voice_service.set_app(self)
+            
+            # 创建 gRPC 服务器
+            from src.grpc.grpc_server import GrpcServer
+            
+            # 从配置读取设置
+            grpc_port = self.config.get_config("GRPC.PORT", 50051)
+            grpc_host = self.config.get_config("GRPC.HOST", "0.0.0.0")
+            
+            self.grpc_server = GrpcServer(
+                self.voice_service, 
+                host=grpc_host,
+                port=grpc_port
+            )
+            
+            # 启动 gRPC 服务器
+            await self.grpc_server.start()
+            
+            logger.info(f"gRPC 服务已启动，监听地址: {grpc_host}:{grpc_port}")
+            
+        except Exception as e:
+            logger.error(f"初始化 gRPC 服务失败: {e}")
+            # gRPC 服务失败不影响主程序运行
+            self.grpc_server = None
+            self.voice_service = None
 
     async def _start_timer_service(self):
         """

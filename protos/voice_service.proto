@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package voice;
+
+// 语音服务定义
+service VoiceService {
+  // 开始录音
+  rpc StartRecording(Empty) returns (RecordingResponse);
+  
+  // 停止录音
+  rpc StopRecording(Empty) returns (RecordingResponse);
+  
+  // 获取状态
+  rpc GetStatus(Empty) returns (StatusResponse);
+  
+  // 订阅状态流（服务端推送）
+  rpc SubscribeStatus(Empty) returns (stream StatusUpdate);
+  
+  // 订阅文本消息流（服务端推送）
+  rpc SubscribeTextMessages(Empty) returns (stream TextMessage);
+}
+
+// 空消息
+message Empty {}
+
+// 录音响应
+message RecordingResponse {
+  bool success = 1;
+  string message = 2;
+}
+
+// 状态响应
+message StatusResponse {
+  bool is_recording = 1;
+  string device_state = 2;
+  bool connected = 3;
+}
+
+// 状态更新（流式）
+message StatusUpdate {
+  string status = 1;
+  bool connected = 2;
+  bool is_recording = 3;
+  string device_state = 4;
+  int64 timestamp = 5;
+}
+
+// 文本消息（流式）
+message TextMessage {
+  string text = 1;
+  string type = 2; // "user", "assistant", "system"
+  int64 timestamp = 3;
+}
